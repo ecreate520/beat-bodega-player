@@ -104,8 +104,22 @@
       ctx.restore();
       timeEl.textContent = formatTime(audioEl.currentTime) + " / " + formatTime(audioEl.duration);
     }
-    function tick() { if (!isDragging && !audioEl.paused && audioEl.duration) { const progress = audioEl.currentTime / audioEl.duration; const rotation = progress * 360; gsap.set(draggableInstance, { rotation: rotation }); gsap.set(recordImg, { rotation: rotation }); } drawAll(); if (!audioEl.paused && !audioEl.ended) raf = requestAnimationFrame(tick); }
-    audioEl.addEventListener('play', () => { iconPlay.style.display = "none"; iconPause.style.display = "block"; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); });
+    function tick() {
+  // NEW: Check for size changes on every frame for robust resizing
+  // This ensures the canvas always matches its container size, fixing mobile distortion.
+  if (canvas.clientWidth !== W) {
+    resizePlayer();
+  }
+
+  if (!isDragging && !audioEl.paused && audioEl.duration) {
+    const progress = audioEl.currentTime / audioEl.duration;
+    const rotation = progress * 360;
+    gsap.set(draggableInstance, { rotation: rotation });
+    gsap.set(recordImg, { rotation: rotation });
+  }
+  drawAll();
+  if (!audioEl.paused && !audioEl.ended) raf = requestAnimationFrame(tick);
+}
     audioEl.addEventListener('pause', () => { iconPause.style.display = "none"; iconPlay.style.display = "block"; cancelAnimationFrame(raf); drawAll(); });
     audioEl.addEventListener("timeupdate", drawAll);
     audioEl.addEventListener("loadedmetadata", drawAll);
