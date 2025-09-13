@@ -17,6 +17,7 @@
     const iconPlay = document.getElementById("bb-icon-play");
     const iconPause = document.getElementById("bb-icon-pause");
     const canvas = document.getElementById("bb-wave-canvas");
+    const spinMeImg = document.getElementById("bb-spin-me-img"); // Added
     const ctx = canvas.getContext("2d");
     let W, H, cx, cy;
     let baseRadius, minBar, amp, lineWidth;
@@ -24,6 +25,7 @@
     const waveform = (window.BB_WAVEFORMS && window.BB_WAVEFORMS[baseName]) ? window.BB_WAVEFORMS[baseName] : Array.from({ length: 160 }, () => Math.random() * 0.85 + 0.05);
     const bars = waveform.length;
     let hoverProgress = null, isDragging = false, raf = null;
+    let hasPlayedOnce = false; // Added
     let lastRotation = 0, currentScrubDirection = null, isOnCooldown = false;
     audioEl.src = audioUrl;
     dragAudioEl.src = dragAudioUrl;
@@ -38,6 +40,7 @@
     const draggableInstance = Draggable.create(dragHandle, {
       type: "rotation", inertia: false,
       onPress: function(e) {
+        if (spinMeImg) { gsap.to(spinMeImg, { opacity: 0, duration: 0.2 }); } // Added
         if (isMobile && isOnCooldown) return;
         const buttonRect = playBtn.getBoundingClientRect();
         if (e.clientX >= buttonRect.left && e.clientX <= buttonRect.right && e.clientY >= buttonRect.top && e.clientY <= buttonRect.bottom) {
@@ -104,23 +107,24 @@
       ctx.restore();
       timeEl.textContent = formatTime(audioEl.currentTime) + " / " + formatTime(audioEl.duration);
     }
-    function tick() {
-  // NEW: Check for size changes on every frame for robust resizing
-  // This ensures the canvas always matches its container size, fixing mobile distortion.
-  if (canvas.clientWidth !== W) {
-    resizePlayer();
-  }
-
-  if (!isDragging && !audioEl.paused && audioEl.duration) {
-    const progress = audioEl.currentTime / audioEl.duration;
-    const rotation = progress * 360;
-    gsap.set(draggableInstance, { rotation: rotation });
-    gsap.set(recordImg, { rotation: rotation });
-  }
-  drawAll();
-  if (!audioEl.paused && !audioEl.ended) raf = requestAnimationFrame(tick);
-}
-    audioEl.addEventListener('pause', () => { iconPause.style.display = "none"; iconPlay.style.display = "block"; cancelAnimationFrame(raf); drawAll(); });
+    function tick() { if (!isDragging && !audioEl.paused && audioEl.duration) { const progress = audioEl.currentTime / audioEl.duration; const rotation = progress * 360; gsap.set(draggableInstance, { rotation: rotation }); gsap.set(recordImg, { rotation: rotation }); } drawAll(); if (!audioEl.paused && !audioEl.ended) raf = requestAnimationFrame(tick); }
+    audioEl.addEventListener('play', () => {
+      if (!hasPlayedOnce) { // Added
+        gsap.to(timeEl, { opacity: 1, duration: 0.2 });
+        hasPlayedOnce = true;
+      }
+      if (spinMeImg) { gsap.to(spinMeImg, { opacity: 0, duration: 0.5 }); } // Added
+      iconPlay.style.display = "none";
+      iconPause.style.display = "block";
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(tick);
+    });
+    audioEl.addEventListener('pause', () => {
+      iconPause.style.display = "none";
+      iconPlay.style.display = "block";
+      cancelAnimationFrame(raf);
+      drawAll();
+    });
     audioEl.addEventListener("timeupdate", drawAll);
     audioEl.addEventListener("loadedmetadata", drawAll);
     audioEl.addEventListener("ended", () => { audioEl.currentTime = 0; });
