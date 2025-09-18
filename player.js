@@ -1,4 +1,4 @@
- window.addEventListener('load', () => {
+  window.addEventListener('load', () => {
     const slug = window.location.pathname.split("/").filter(Boolean).pop()?.toLowerCase() || "";
     const baseName = slug.replace(/-(basic|pro|ultimate)$/, "");
     const audioUrl = `https://www.beatbodeganyc.com/s/${baseName}.mp3`;
