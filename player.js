@@ -1,4 +1,74 @@
-  window.addEventListener('load', () => {
+function runPageSetupLogic() {
+  let isMetaMoved = false;
+  let isDescriptionGenerated = false;
+  let isTierLinksGenerated = false;
+
+  function runAllSetups() {
+    const productMeta = document.querySelector('.product-meta');
+    const customInfoContainer = document.getElementById('product-info-container');
+    const descContainer = document.getElementById('product-description-container');
+    const extrasContainer = document.getElementById('product-extras-container');
+    
+    if (!isMetaMoved && productMeta && customInfoContainer) {
+      const productGallery = document.querySelector('.product-gallery');
+      if (productGallery) productGallery.style.display = 'none';
+      productMeta.style.display = 'block';
+      const productTitle = productMeta.querySelector('.product-title');
+      if (productTitle) { productTitle.innerText = productTitle.innerText.split('-')[0].trim(); }
+      customInfoContainer.appendChild(productMeta);
+      isMetaMoved = true;
+    }
+    
+    if (!isDescriptionGenerated && descContainer) {
+      const descriptions = {
+        basic: { title: 'The Basic Package includes:', points: [ 'An untagged, lossless WAV file.', 'An untagged MP3 file.', { title: 'A contract allowing for:', subPoints: [ 'Up to 10,000 audio streams.', 'Up to 7,500 distributions.', 'Broadcasting rights.' ] } ] },
+        pro: { title: 'The Pro Package includes:', points: [ 'An untagged, lossless WAV file.', 'An untagged MP3 file.', 'WAV Trackouts (separate files for each individual instrument).', { title: 'A contract allowing for:', subPoints: [ 'Up to 50,000 audio streams.', 'Up to 15,000 physical distributions.', 'Broadcasting rights.' ] } ] },
+        ultimate: { title: 'The Ultimate Package includes:', points: [ 'An untagged, lossless WAV file.', 'An untagged MP3 file.', 'WAV Trackouts (separate files for each individual instrument).', { title: 'A contract allowing for:', subPoints: [ 'Unlimited audio streams.', 'Unlimited physical distributions.', 'Broadcasting rights.' ] } ] }
+      };
+      const path = window.location.pathname.toLowerCase();
+      let tier = null;
+      if (path.endsWith('-basic')) tier = 'basic'; else if (path.endsWith('-pro')) tier = 'pro'; else if (path.endsWith('-ultimate')) tier = 'ultimate';
+      if (tier) {
+        const data = descriptions[tier];
+        let html = `<h3 class="animated-underline">${data.title}</h3><ul>`;
+        data.points.forEach(point => {
+          if (typeof point === 'string') { html += `<li>${point}</li>`; }
+          else { html += `<li>${point.title}<ul>`; point.subPoints.forEach(sub => { html += `<li>${sub}</li>`; }); html += '</ul></li>'; }
+        });
+        html += '</ul>';
+        descContainer.innerHTML = html;
+        isDescriptionGenerated = true;
+      }
+    }
+
+    if (!isTierLinksGenerated && extrasContainer) {
+      const tiers = [ { id: 'basic', name: 'Basic Package', slug: '-basic', price: '$30' }, { id: 'pro', name: 'Pro Package', slug: '-pro', price: '$50' }, { id: 'ultimate', name: 'Ultimate Package', slug: '-ultimate', price: '$130' } ];
+      const path = window.location.pathname.toLowerCase();
+      const currentTier = tiers.find(tier => path.endsWith(tier.slug));
+      if (currentTier) {
+        const baseProductUrl = path.substring(0, path.length - currentTier.slug.length);
+        const otherTiers = tiers.filter(tier => tier.id !== currentTier.id);
+        let html = '<h3>Other Packages:</h3>';
+        otherTiers.forEach(tier => { html += `<a href="${baseProductUrl}${tier.slug}" class="tier-link"><span class="tier-name">${tier.name}</span><span class="tier-price">${tier.price}</span></a>`; });
+        extrasContainer.innerHTML = html;
+        isTierLinksGenerated = true;
+      }
+    }
+    return isMetaMoved && isDescriptionGenerated && isTierLinksGenerated;
+  }
+
+  const observer = new MutationObserver((mutations, obs) => {
+    if (runAllSetups()) {
+      obs.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  runAllSetups();
+}
+
+window.addEventListener('load', () => {
+  runPageSetupLogic(); 
     const slug = window.location.pathname.split("/").filter(Boolean).pop()?.toLowerCase() || "";
     const baseName = slug.replace(/-(basic|pro|ultimate)$/, "");
     const audioUrl = `https://www.beatbodeganyc.com/s/${baseName}.mp3`;
